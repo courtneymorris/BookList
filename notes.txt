@@ -1,0 +1,16 @@
+nullable: It can be ignored or left blank. (True by default)
+unique: It has to be the only one of its kind. (False by default)
+
+
+*Never put a string limiter on a password
+
+
+Run following in a PYTHON REPL to make sure your db setup is all good:
+from app import db 
+
+Run following in a PYTHON REPL to start running your database?
+db.create_all()
+
+
+Use a SQL database if you're going to have the same type of data being put in the same fields
+Use a NO SQL database if you're going to have user defined fields or need to be dynamic

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <style>
+        body {
+            margin: 0px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .page-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100vw;
+            min-height: 100vh;
+        }
+
+        .buttons-wrapper {
+            margin-top: 20px;
+        }
+
+        .buttons-wrapper button {
+            width: 86px;
+            background-color: plum;
+            border: 1px solid darkcyan;
+            border-radius: 3px;
+        }
+
+        .books-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .book-wrapper {
+            text-align: center;
+            border: 1px solid black;
+            border-radius: 5px;
+            width: 250px;
+            margin-bottom: 20px;
+            background-image: linear-gradient(140deg, #EADEDB 0%, #BC70A4 50%, #BFD641 75%);
+        }
+
+        .book-wrapper .buttons-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;
+        }
+
+        .add-book-form-wrapper {
+            display: none;
+        }
+
+        .add-book-form {
+            display: flex;
+            flex-direction: column;
+            margin-top: 10px;
+        }
+
+        .add-book-form input, textarea {
+            width: 250px;
+            margin: 10px 0px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="buttons-wrapper">
+            <button id="view-books-button">View Books</button>
+            <button id="add-book-button">Add Book</button>
+        </div>
+        
+        <div class="books-wrapper">
+            <h2>Books</h2>
+        </div>
+
+        <div class="add-book-form-wrapper">
+            <form class="add-book-form">
+                <input id="title-input" type="text" placeholder="Title">
+                <input id="author-input" type="text" placeholder="Author">
+                <textarea id="review-input" placeholder="Review"></textarea>
+                <button  type="submit">Submit</button>
+            </form>
+        </div>
+    </div>
+</body>
+
+<script>
+    const renderBook = book => {
+        const bookWrapper = document.createElement("div")
+            bookWrapper.className = "book-wrapper"
+
+            const titleTag = document.createElement("h3")
+            titleTag.innerHTML = book.title
+
+            const authorTag = document.createElement("h4")
+            authorTag.innerHTML = book.author
+
+            const reviewTag = document.createElement("p")
+            reviewTag.innerHTML = book.review
+
+            const buttonsWrapper = document.createElement("div")
+            buttonsWrapper.className = "buttons-wrapper"
+
+            const updateButton = document.createElement("button")
+            updateButton.innerHTML = "Edit"
+            const handleUpdate = () => {
+                titleTag.style.display = "none"
+                authorTag.style.display = "none"
+                reviewTag.style.display = "none"
+
+                const titleInput = document.createElement("input")
+                const authorInput = document.createElement("input")
+                const reviewInput = document.createElement("textarea")
+
+                titleInput.value = titleTag.innerHTML
+                authorInput.value = authorTag.innerHTML
+                reviewInput.value = reviewTag.innerHTML
+
+                bookWrapper.insertBefore(titleInput, buttonsWrapper)
+                bookWrapper.insertBefore(authorInput, buttonsWrapper)
+                bookWrapper.insertBefore(reviewInput, buttonsWrapper)
+
+                updateButton.innerHTML = "Submit"
+                updateButton.onclick = () => {
+                    fetch(`http://127.0.0.1:5000/book/update/${book.id}`, {
+                        method: "PUT",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({
+                            title: titleInput.value,
+                            author: authorInput.value,
+                            review: reviewInput.value
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data)
+                        if (data === "Book updated successfully") {
+                            titleTag.innerHTML = titleInput.value
+                            authorTag.innerHTML = authorInput.value
+                            reviewTag.innerHTML = reviewInput.value
+                            
+                            titleInput.remove()
+                            authorInput.remove()
+                            reviewInput.remove()
+
+                            titleTag.style.display = "block"
+                            authorTag.style.display = "block"
+                            reviewTag.style.display = "block"
+
+                            updateButton.innerHTML = "Edit"
+                            updateButton.onclick = handleUpdate
+                        }
+                    })
+                    .catch(error => console.log("Error updating book: ", error))
+                }
+            }
+            updateButton.onclick = handleUpdate
+
+            const deleteButton = document.createElement("button")
+            deleteButton.innerHTML = "Delete"
+            deleteButton.onclick = () => {
+                fetch(`http://127.0.0.1:5000/book/delete/${book.id}`, { method: "DELETE" })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data)
+                    if (data === "Book was successfully deleted") {
+                        bookWrapper.remove()
+                    }
+                })
+                .catch(error => console.log("Error deleting book: ", error))
+            }
+
+            buttonsWrapper.appendChild(updateButton)
+            buttonsWrapper.appendChild(deleteButton)
+
+            bookWrapper.appendChild(titleTag)
+            bookWrapper.appendChild(authorTag)
+            bookWrapper.appendChild(reviewTag)
+            bookWrapper.appendChild(buttonsWrapper)
+
+            const booksWrapper = document.querySelector(".books-wrapper")
+            booksWrapper.appendChild(bookWrapper)
+    }
+
+    fetch("http://127.0.0.1:5000/book/get", { method: "GET" }) // Note: default method is GET for fetch, so you could leave this second arg off
+    .then(response => response.json())
+    .then(data => {
+        data.forEach(book => {
+            renderBook(book)
+        })
+    })
+    .catch(error => console.log("Error fetching books: ", error));
+
+    const viewBooksButton = document.querySelector("#view-books-button")
+    const addBookButton = document.querySelector("#add-book-button")
+    const booksDiv = document.querySelector(".books-wrapper")
+    const formDiv = document.querySelector(".add-book-form-wrapper")
+
+    viewBooksButton.onclick = () => {
+        booksDiv.style.display = "flex"
+        formDiv.style.display = "none"
+    }
+
+    addBookButton.onclick = () => {
+        booksDiv.style.display = "none"
+        formDiv.style.display = "flex"
+    }
+
+    const addBookForm = document.querySelector(".add-book-form")
+    addBookForm.onsubmit = event => {
+        event.preventDefault()
+
+        const titleInput = document.querySelector("#title-input")
+        const authorInput = document.querySelector("#author-input")
+        const reviewInput = document.querySelector("#review-input")
+
+        const title = titleInput.value
+        const author = authorInput.value
+        const review = reviewInput.value
+
+        fetch("http://127.0.0.1:5000/book/add", { 
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+                title: title,
+                author: author,
+                review: review,
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data)
+            if (data === "Book added successfully") {
+                booksDiv.style.display = "flex"
+                formDiv.style.display = "none"
+
+                titleInput.value = ""
+                authorInput.value = ""
+                reviewInput.value = ""
+
+                fetch(`http://127.0.0.1:5000/book/get/title/${title}`)
+                .then(response => response.json())
+                .then(data => renderBook(data))
+                .catch(error => console.log("Error getting new book: ", error))
+            }
+        })
+        .catch(error => console.log("Error adding new book: ", error))
+    }
+</script>
+</html>
